@@ -4,11 +4,11 @@
 #include <HTTPClient.h>
 #include "board_config.h"
 
-const char *ssid = "M^x^^x^M";
-const char *password = "mle@11204";
+const char* ssid = "D320";
+const char* password = "tefloncf2";
 
 /* server Python */
-const char* uploadServer = "http://10.153.136.111:5000/upload";
+const char* uploadServer = "http://192.168.1.69:5000/upload";
 
 WebServer server(80);
 
@@ -130,6 +130,16 @@ void handleStream(){
   isStreaming = true; // Bật cờ cho phép stream chạy ở hàm loop()
   Serial.println("[Stream] Có trình duyệt đang xem video.");
 }
+void handleJPG(){
+  camera_fb_t *fb = esp_camera_fb_get();
+  if (!fb) {
+    server.send(500, "text/plain", "Camera error");
+    return;
+  }
+
+  server.send_P(200, "image/jpeg", (const char*)fb->buf, fb->len);
+  esp_camera_fb_return(fb);
+}
 
 /* ======================
    SETUP
@@ -151,6 +161,7 @@ void setup(){
   server.on("/",handleRoot);
   server.on("/capture",handleCapture);
   server.on("/stream",handleStream);
+  server.on("/jpg", handleJPG);
   server.begin();
 }
 
