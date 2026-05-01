@@ -57,7 +57,8 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
-    - assets/images/logo.png
+    - assets/images/
+    - assets/sounds/
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
@@ -88,3 +89,12 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
+        - asset: assets/fonts/Roboto-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Roboto-Light.ttf
+          weight: 300
+  
