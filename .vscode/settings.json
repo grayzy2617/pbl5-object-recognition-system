@@ -1,3 +1,4 @@
 {
-  "cmake.sourceDirectory": "D:/flutter_vscode/flutter_application_1/linux/flutter"
+  "cmake.sourceDirectory": "D:/flutter_vscode/flutter_application_1/linux/flutter",
+  "java.configuration.updateBuildConfiguration": "interactive"
 }

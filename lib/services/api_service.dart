@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = "http://192.168.1.3:5000";
+  static const String baseUrl = "http://10.95.209.52:5000";
   static const String tokenKey = "auth_token";
   static const String userIdKey = "user_id";
 

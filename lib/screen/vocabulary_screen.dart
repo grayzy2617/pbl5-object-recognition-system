@@ -329,25 +329,80 @@ class _FlashcardLearnerState extends State<FlashcardLearner>
     });
   }
 
-  void _checkPronunciation(String targetWord) {
+  // void _checkPronunciation(String targetWord) {
+  //   if (_recognizedText.isEmpty) return;
+
+  //   String cleanTarget = targetWord
+  //       .replaceAll(RegExp(r'[^\w\s]'), '')
+  //       .toLowerCase()
+  //       .trim();
+  //   String cleanRecognized = _recognizedText
+  //       .replaceAll(RegExp(r'[^\w\s]'), '')
+  //       .toLowerCase()
+  //       .trim();
+
+  //   bool isCorrect = (cleanTarget == cleanRecognized);
+
+  //   setState(() {
+  //     _isPronunciationCorrect = isCorrect;
+  //   });
+
+  //   // Phát âm thanh tương ứng
+  //   if (isCorrect) {
+  //     widget.onPlaySound('correct');
+  //   } else {
+  //     widget.onPlaySound('wrong');
+  //   }
+  // }
+
+  void _checkPronunciation() {
     if (_recognizedText.isEmpty) return;
 
-    String cleanTarget = targetWord
-        .replaceAll(RegExp(r'[^\w\s]'), '')
-        .toLowerCase()
-        .trim();
-    String cleanRecognized = _recognizedText
-        .replaceAll(RegExp(r'[^\w\s]'), '')
-        .toLowerCase()
-        .trim();
+    String targetWord = widget.vocabulary[_currentIndex]['ai_label'] ?? '';
 
-    bool isCorrect = (cleanTarget == cleanRecognized);
+    // Nén chuỗi để kiểm tra tuyệt đối
+    String ultraTarget = targetWord.toLowerCase().replaceAll(
+      RegExp(r'[^a-z0-9]'),
+      '',
+    );
+    String ultraRecognized = _recognizedText.toLowerCase().replaceAll(
+      RegExp(r'[^a-z0-9]'),
+      '',
+    );
+
+    bool isCorrect = false;
+
+    // KIỂM TRA 1: Khớp chuỗi (Tốt nhất cho từ dài hoặc khi máy tự thêm a, an, the)
+    if (ultraRecognized.contains(ultraTarget)) {
+      isCorrect = true;
+    }
+
+    // KIỂM TRA 2: SỰ BAO DUNG (Dành cho từ ngắn bị STT nghe nhầm 1-2 âm)
+    if (!isCorrect) {
+      // Tách câu vừa đọc thành các từ đơn lẻ
+      List<String> spokenWords = _recognizedText
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^a-z0-9\s]'), '')
+          .split(' ');
+
+      // QUY TẮC: Từ <= 4 chữ cái cho phép sai 1 lỗi (VD: bike -> bite). Từ dài hơn cho phép sai 2 lỗi.
+      int allowedErrors = ultraTarget.length <= 4 ? 1 : 2;
+
+      for (String word in spokenWords) {
+        if (word.isNotEmpty) {
+          int diff = _calculateDifference(ultraTarget, word);
+          if (diff <= allowedErrors) {
+            isCorrect = true;
+            break; // Chỉ cần 1 từ trong câu gần giống là đậu!
+          }
+        }
+      }
+    }
 
     setState(() {
       _isPronunciationCorrect = isCorrect;
     });
 
-    // Phát âm thanh tương ứng
     if (isCorrect) {
       widget.onPlaySound('correct');
     } else {
@@ -355,16 +410,95 @@ class _FlashcardLearnerState extends State<FlashcardLearner>
     }
   }
 
-  void _toggleListening(String targetWord) async {
+  // Hàm tính toán số lượng chữ cái khác biệt giữa 2 từ
+  int _calculateDifference(String s1, String s2) {
+    if (s1 == s2) return 0;
+    if (s1.isEmpty) return s2.length;
+    if (s2.isEmpty) return s1.length;
+
+    List<int> v0 = List<int>.generate(s2.length + 1, (i) => i);
+    List<int> v1 = List<int>.filled(s2.length + 1, 0);
+
+    for (int i = 0; i < s1.length; i++) {
+      v1[0] = i + 1;
+      for (int j = 0; j < s2.length; j++) {
+        int cost = (s1[i] == s2[j]) ? 0 : 1;
+        v1[j + 1] = math.min(v1[j] + 1, math.min(v0[j + 1] + 1, v0[j] + cost));
+      }
+      for (int j = 0; j < v0.length; j++) {
+        v0[j] = v1[j];
+      }
+    }
+    return v1[s2.length];
+  }
+
+  // void _toggleListening(String targetWord) async {
+  //   if (!_isListening) {
+  //     bool available = await _speech.initialize(
+  //       onStatus: (status) {
+  //         if (status == 'done' || status == 'notListening') {
+  //           setState(() => _isListening = false);
+  //           _checkPronunciation(targetWord);
+  //         }
+  //       },
+  //       onError: (error) {
+  //         setState(() => _isListening = false);
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           SnackBar(content: Text('Lỗi Micro: ${error.errorMsg}')),
+  //         );
+  //       },
+  //     );
+
+  //     if (available) {
+  //       setState(() {
+  //         _isListening = true;
+  //         _recognizedText = '';
+  //         _isPronunciationCorrect = null;
+  //       });
+  //       _speech.listen(
+  //         onResult: (result) {
+  //           setState(() {
+  //             _recognizedText = result.recognizedWords;
+  //           });
+  //         },
+  //         localeId: 'en_US',
+  //       );
+  //     } else {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(
+  //           content: Text('Chưa cấp quyền Micro hoặc thiết bị không hỗ trợ'),
+  //         ),
+  //       );
+  //     }
+  //   } else {
+  //     setState(() => _isListening = false);
+  //     _speech.stop();
+  //     _checkPronunciation(targetWord);
+  //   }
+  // }
+
+  void _toggleListening() async {
     if (!_isListening) {
+      await FlutterTts().stop();
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      // 1. KIỂM TRA BẢO HIỂM: Sau khi chờ 300ms, màn hình có bị tắt chưa?
+      // Nếu màn hình đã bị đóng, lập tức ngưng chạy code để chống văng App!
+      if (!mounted) return;
+
       bool available = await _speech.initialize(
         onStatus: (status) {
+          // Cũng phải kiểm tra bên trong các sự kiện ngầm
+          if (!mounted) return;
+
           if (status == 'done' || status == 'notListening') {
             setState(() => _isListening = false);
-            _checkPronunciation(targetWord);
+            _checkPronunciation();
           }
         },
         onError: (error) {
+          if (!mounted) return;
+
           setState(() => _isListening = false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Lỗi Micro: ${error.errorMsg}')),
@@ -372,14 +506,20 @@ class _FlashcardLearnerState extends State<FlashcardLearner>
         },
       );
 
+      // 2. KIỂM TRA BẢO HIỂM LẦN 2: Khởi tạo Micro xong có khi màn hình cũng vừa tắt
+      if (!mounted) return;
+
       if (available) {
+        // Giờ thì gọi setState thoải mái vì đã chắc chắn màn hình còn sống!
         setState(() {
           _isListening = true;
           _recognizedText = '';
           _isPronunciationCorrect = null;
         });
+
         _speech.listen(
           onResult: (result) {
+            if (!mounted) return;
             setState(() {
               _recognizedText = result.recognizedWords;
             });
@@ -396,7 +536,7 @@ class _FlashcardLearnerState extends State<FlashcardLearner>
     } else {
       setState(() => _isListening = false);
       _speech.stop();
-      _checkPronunciation(targetWord);
+      _checkPronunciation();
     }
   }
 
@@ -466,7 +606,7 @@ class _FlashcardLearnerState extends State<FlashcardLearner>
           Column(
             children: [
               GestureDetector(
-                onTap: () => _toggleListening(item['ai_label'] ?? ''),
+                onTap: () => _toggleListening(),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   padding: const EdgeInsets.all(12),
@@ -645,7 +785,7 @@ class _FlashcardLearnerState extends State<FlashcardLearner>
                               decoration: BoxDecoration(
                                 color: Theme.of(
                                   context,
-                                ).primaryColor.withOpacity(0.1),
+                                ).primaryColor.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
                                   color: Theme.of(context).primaryColor,
@@ -653,7 +793,7 @@ class _FlashcardLearnerState extends State<FlashcardLearner>
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
+                                    color: Colors.black.withValues(alpha: 0.1),
                                     blurRadius: 10,
                                     offset: const Offset(0, 5),
                                   ),

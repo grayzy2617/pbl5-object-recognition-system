@@ -4,6 +4,9 @@ import 'package:image_picker/image_picker.dart';
 import '../services/api_service.dart';
 import '../services/auth_provider.dart';
 import '../services/theme_provider.dart';
+import '../theme/theme_colors.dart';
+import '../theme/custom_styles.dart';
+import '../theme/animation_constants.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -36,7 +39,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _bioController.text = authProvider.userProfile?['bio'] ?? '';
     }
 
-    // Load stats
     final statsResult = await ApiService.getProfileStats();
     if (mounted && statsResult['success']) {
       setState(() => _stats = statsResult);
@@ -128,490 +130,376 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // MỚI: Hàm quyết định màu sắc của Danh hiệu dựa vào tên Rank
-  Color _getTitleColor(String title) {
-    if (title.contains('Kim Cương')) return Colors.cyan;
-    if (title.contains('Vàng')) return Colors.amber;
-    if (title.contains('Bạc')) return Colors.grey[400]!;
-    if (title.contains('Đồng')) return Colors.brown[400]!;
-    if (title.contains('Huyền thoại')) return Colors.purple;
-    return Colors.green; // Mầm non AI
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Hồ sơ cá nhân'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Consumer<ThemeProvider>(
-              builder: (context, themeProvider, _) {
-                return Tooltip(
-                  message: themeProvider.isDarkMode
-                      ? 'Chế độ sáng'
-                      : 'Chế độ tối',
-                  child: IconButton(
-                    icon: Icon(
-                      themeProvider.isDarkMode
-                          ? Icons.light_mode
-                          : Icons.dark_mode,
+    return Container(
+      decoration: BoxDecoration(gradient: MagicSkyColors.backgroundGradient),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text('Hồ sơ cá nhân'),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          actions: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Consumer<ThemeProvider>(
+                builder: (context, themeProvider, _) {
+                  return Tooltip(
+                    message: 'Chế độ sáng (cố định)',
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: MagicSkyColors.bgSoftWhite,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.light_mode,
+                        color: MagicSkyColors.sunshineYellow,
+                      ),
                     ),
-                    onPressed: () => themeProvider.toggleTheme(),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
-      ),
-      body: Consumer<AuthProvider>(
-        builder: (context, authProvider, _) {
-          final profile = authProvider.userProfile;
+          ],
+        ),
+        body: Consumer<AuthProvider>(
+          builder: (context, authProvider, _) {
+            final profile = authProvider.userProfile;
 
-          if (authProvider.isLoading && profile == null) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          // Trích xuất dữ liệu Gamification an toàn
-          final String title = profile?['title'] ?? '🌱 Người mới';
-          final int currentStreak = profile?['current_streak'] ?? 0;
-          final int bestStreak = profile?['best_streak'] ?? 0;
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                // ================= Avatar & Danh hiệu =================
-                Center(
-                  child: Column(
-                    children: [
-                      Stack(
-                        children: [
-                          Container(
-                            width: 140,
-                            height: 140,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.grey[300],
-                              border: Border.all(
-                                color: _getTitleColor(title),
-                                width: 4, // Viền lấp lánh theo Rank
-                              ),
-                              image: profile?['avatar_url'] != null
-                                  ? DecorationImage(
-                                      image: NetworkImage(
-                                        profile!['avatar_url'],
-                                      ),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : null,
-                            ),
-                            child: profile?['avatar_url'] == null
-                                ? Icon(
-                                    Icons.person,
-                                    size: 70,
-                                    color: Colors.grey[600],
-                                  )
-                                : null,
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Theme.of(context).primaryColor,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 2,
-                                ),
-                              ),
-                              child: IconButton(
-                                icon: const Icon(
-                                  Icons.camera_alt,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                                onPressed: _isUploading
-                                    ? null
-                                    : _pickAndUploadAvatar,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Bảng tên hiển thị Danh hiệu (Title)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _getTitleColor(title).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: _getTitleColor(title)),
-                        ),
-                        child: Text(
-                          title,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: _getTitleColor(title),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+            if (authProvider.isLoading && profile == null) {
+              return const Center(
+                child: CircularProgressIndicator(
+                  color: MagicSkyColors.primaryBlue,
                 ),
-                const SizedBox(height: 24),
+              );
+            }
 
-                // ================= Khu vực Streak (Chuỗi ngày) =================
-                Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 20,
-                      horizontal: 16,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        // Chuỗi hiện tại
-                        Column(
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  '$currentStreak',
-                                  style: const TextStyle(
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.w900,
-                                    color: Colors.deepOrange,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                const Text(
-                                  '🔥',
-                                  style: TextStyle(fontSize: 28),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Chuỗi hiện tại',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
+            final String title = profile?['title'] ?? '🌱 Người mới';
+            final int currentStreak = profile?['current_streak'] ?? 0;
+            final int bestStreak = profile?['best_streak'] ?? 0;
+            final int totalScore = profile?['total_score'] ?? 0;
 
-                        // Đường phân cách
-                        Container(
-                          height: 50,
-                          width: 1,
-                          color: Colors.grey[300],
-                        ),
-
-                        // Kỷ lục cao nhất
-                        Column(
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  '$bestStreak',
-                                  style: TextStyle(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.w900,
-                                    color: Colors.orange[300],
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                const Text('⚡', style: TextStyle(fontSize: 24)),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Kỷ lục cao nhất',
-                              style: TextStyle(
-                                color: Colors.grey[500],
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // ================= Thống kê chi tiết =================
-                if (_stats != null)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  // Avatar & Title Section
+                  AnimationHelpers.scaleIn(
+                    child: Center(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Hoạt động học tập',
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          const Divider(),
-                          const SizedBox(height: 8),
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          // Avatar
+                          Stack(
                             children: [
-                              _StatItem(
-                                icon: Icons.quiz,
-                                label: 'Bài Quiz',
-                                value: '${_stats!['total_quizzes'] ?? 0}',
-                                color: Colors.blue,
+                              Container(
+                                width: 140,
+                                height: 140,
+                                decoration: BoxDecoration(
+                                  gradient: MagicSkyColors.primaryGradient,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: MagicSkyColors.primaryBlue
+                                          .withValues(alpha: 0.3),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ],
+                                ),
+                                child: profile?['avatar_url'] != null
+                                    ? Container(
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          image: DecorationImage(
+                                            image: NetworkImage(
+                                              profile!['avatar_url'],
+                                            ),
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.person,
+                                        size: 70,
+                                        color: Colors.white.withValues(
+                                          alpha: 0.7,
+                                        ),
+                                      ),
                               ),
-                              _StatItem(
-                                icon: Icons.check_circle,
-                                label: 'Tỉ lệ đúng',
-                                value:
-                                    '${(_stats!['accuracy_pct'] ?? 0).toStringAsFixed(1)}%',
-                                color: Colors.green,
-                              ),
-                              _StatItem(
-                                icon: Icons.star,
-                                label: 'Điểm số',
-                                value: '${_stats!['total_score'] ?? 0}',
-                                color: Colors.amber,
+                              // Upload button
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: GestureDetector(
+                                  onTap: _isUploading
+                                      ? null
+                                      : _pickAndUploadAvatar,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      gradient: MagicSkyColors.sunsetGradient,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: MagicSkyColors.sunsetOrange
+                                              .withValues(alpha: 0.3),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: _isUploading
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation(
+                                                    Colors.white,
+                                                  ),
+                                            ),
+                                          )
+                                        : const Icon(
+                                            Icons.camera_alt,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 16),
 
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 12,
-                              horizontal: 16,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.purple[50],
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.center_focus_strong,
-                                  color: Colors.purple,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    'Camera AI đã quét: ${_stats!['ai_detections'] ?? 0} vật thể',
-                                    style: const TextStyle(
-                                      color: Colors.purple,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                          // Username
+                          Text(
+                            profile?['username'] ?? 'Unknown',
+                            style: Theme.of(context).textTheme.titleLarge,
                           ),
+
+                          const SizedBox(height: 12),
+
+                          // Title Badge
+                          TitleBadge(title: title, fontSize: 16),
                         ],
                       ),
                     ),
                   ),
-                const SizedBox(height: 16),
 
-                // ================= User info section =================
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
+                  const SizedBox(height: 24),
+
+                  // Gamification Section
+                  AnimationHelpers.slideInUp(
+                    duration: const Duration(milliseconds: 400),
+                    child: Column(
+                      children: [
+                        // Streaks
+                        StreakBadge(
+                          streak: currentStreak,
+                          bestStreak: bestStreak,
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Stats Grid
+                        if (_stats != null)
+                          GridView.count(
+                            crossAxisCount: 3,
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                            children: [
+                              StatItem(
+                                icon: Icons.quiz,
+                                label: 'Quiz',
+                                value: '${_stats!['total_quizzes'] ?? 0}',
+                                color: MagicSkyColors.primaryBlue,
+                                gradient: MagicSkyColors.primaryGradient,
+                              ),
+                              StatItem(
+                                icon: Icons.check_circle,
+                                label: 'Độ chính xác',
+                                value:
+                                    '${(_stats!['accuracy_pct'] ?? 0).toStringAsFixed(0)}%',
+                                color: MagicSkyColors.successMint,
+                                gradient: MagicSkyColors.successGradient,
+                              ),
+                              StatItem(
+                                icon: Icons.star,
+                                label: 'Điểm',
+                                value: '$totalScore',
+                                color: MagicSkyColors.sunsetOrange,
+                                gradient: MagicSkyColors.sunsetGradient,
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Profile Info Section
+                  MagicCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Thông tin cá nhân',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.bold),
+                          style: Theme.of(context).textTheme.titleLarge,
                         ),
                         const Divider(),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 12),
 
-                        ListTile(
-                          leading: const Icon(Icons.account_circle),
-                          title: const Text('Tên đăng nhập'),
-                          subtitle: Text(profile?['username'] ?? ''),
-                          contentPadding: EdgeInsets.zero,
+                        // Email
+                        _buildInfoRow(
+                          icon: Icons.email,
+                          label: 'Email',
+                          value: profile?['email'] ?? 'N/A',
+                          context: context,
                         ),
-                        const SizedBox(height: 8),
 
-                        ListTile(
-                          leading: const Icon(Icons.email),
-                          title: const Text('Email'),
-                          subtitle: Text(profile?['email'] ?? ''),
-                          contentPadding: EdgeInsets.zero,
-                        ),
                         const SizedBox(height: 16),
 
+                        // Full Name
                         if (_isEditing)
-                          TextFormField(
+                          TextField(
                             controller: _fullNameController,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               labelText: 'Họ tên',
-                              prefixIcon: Icon(Icons.person),
+                              prefixIcon: const Icon(Icons.person),
+                              filled: true,
+                              fillColor: const Color(0xFFF3F4F6),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
                             ),
                           )
                         else
-                          ListTile(
-                            leading: const Icon(Icons.person),
-                            title: const Text('Họ tên'),
-                            subtitle: Text(_fullNameController.text),
-                            contentPadding: EdgeInsets.zero,
+                          _buildInfoRow(
+                            icon: Icons.person,
+                            label: 'Họ tên',
+                            value: _fullNameController.text,
+                            context: context,
                           ),
-                        const SizedBox(height: 8),
 
+                        const SizedBox(height: 16),
+
+                        // Bio
                         if (_isEditing)
-                          TextFormField(
+                          TextField(
                             controller: _bioController,
-                            decoration: const InputDecoration(
-                              labelText: 'Tiểu sử',
-                              prefixIcon: Icon(Icons.description),
-                            ),
                             maxLines: 3,
+                            decoration: InputDecoration(
+                              labelText: 'Tiểu sử',
+                              prefixIcon: const Icon(Icons.description),
+                              filled: true,
+                              fillColor: const Color(0xFFF3F4F6),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
                           )
                         else
-                          ListTile(
-                            leading: const Icon(Icons.description),
-                            title: const Text('Tiểu sử'),
-                            subtitle: Text(
-                              _bioController.text.isEmpty
-                                  ? 'Chưa cập nhật'
-                                  : _bioController.text,
-                            ),
-                            contentPadding: EdgeInsets.zero,
+                          _buildInfoRow(
+                            icon: Icons.description,
+                            label: 'Tiểu sử',
+                            value: _bioController.text.isEmpty
+                                ? 'Chưa cập nhật'
+                                : _bioController.text,
+                            context: context,
                           ),
                       ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 24),
 
-                // Action buttons
-                if (_isEditing)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => setState(() => _isEditing = false),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey[400],
+                  const SizedBox(height: 24),
+
+                  // Action Buttons
+                  if (_isEditing)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => setState(() => _isEditing = false),
+                            child: const Text('Hủy'),
                           ),
-                          child: const Text('Hủy'),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: authProvider.isLoading
-                              ? null
-                              : _saveProfile,
-                          child: authProvider.isLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation(
-                                      Colors.white,
-                                    ),
-                                  ),
-                                )
-                              : const Text('Lưu'),
-                        ),
-                      ),
-                    ],
-                  )
-                else
-                  Column(
-                    children: [
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () => setState(() => _isEditing = true),
-                          child: const Text('Chỉnh sửa hồ sơ'),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _logout,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red[50],
-                            foregroundColor: Colors.red,
-                            elevation: 0,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GradientButton(
+                            onPressed: authProvider.isLoading
+                                ? () {}
+                                : _saveProfile,
+                            label: 'Lưu',
+                            isLoading: authProvider.isLoading,
                           ),
-                          child: const Text('Đăng xuất'),
                         ),
-                      ),
-                    ],
-                  ),
-                const SizedBox(height: 24),
-              ],
-            ),
-          );
-        },
+                      ],
+                    )
+                  else
+                    Column(
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: GradientButton(
+                            onPressed: () => setState(() => _isEditing = true),
+                            label: 'Chỉnh sửa hồ sơ',
+                            gradient: MagicSkyColors.primaryGradient,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: GradientButton(
+                            onPressed: _logout,
+                            label: 'Đăng xuất',
+                            gradient: MagicSkyColors.warningGradient,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                  const SizedBox(height: 24),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
-}
 
-class _StatItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color; // Thêm tham số màu sắc cho bắt mắt
-
-  const _StatItem({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    required BuildContext context,
+  }) {
+    return Row(
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, size: 28, color: color),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          value,
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.grey[600],
-            fontWeight: FontWeight.bold,
+        Icon(icon, color: MagicSkyColors.primaryBlue, size: 24),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium!.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ],
           ),
         ),
       ],

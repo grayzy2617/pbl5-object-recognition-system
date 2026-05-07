@@ -1,13 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+// Import Firebase
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+// ĐÃ XÓA import firebase_options.dart
+
+// Import các file hiện tại của bạn
 import 'services/api_service.dart';
 import 'services/auth_provider.dart';
 import 'services/theme_provider.dart';
 import 'screen/login_screen.dart';
 import 'screen/register_screen.dart';
 import 'screen/main_navigation_screen.dart';
+import 'screen/quiz_screen.dart';
+import 'screen/vocabulary_screen.dart';
+import 'screen/history_screen.dart';
+import 'screen/live_camera_screen.dart';
+import 'services/notification_provider.dart';
 
-void main() {
+// 1. HÀM CHẠY NGẦM NHẬN THÔNG BÁO KHI TẮT APP
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // Khởi tạo Firebase gọn nhẹ không cần options
+  await Firebase.initializeApp();
+  debugPrint("Đã nhận thông báo cảnh báo ngầm: ${message.messageId}");
+}
+
+void main() async {
+  // Bắt buộc phải có khi tương tác với Native Code (Firebase) trước runApp
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 2. KHỞI TẠO FIREBASE (Không cần cấu hình options)
+  await Firebase.initializeApp();
+
+  // 3. ĐĂNG KÝ HÀM CHẠY NGẦM
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // 4. XIN QUYỀN GỬI THÔNG BÁO (Quan trọng cho iOS/Android 13+)
+  await FirebaseMessaging.instance.requestPermission(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
+
+  // 5. ĐĂNG KÝ KÊNH ĐỂ NGHE CẢNH BÁO TỪ SERVER
+  await FirebaseMessaging.instance.subscribeToTopic('danger_alerts');
+
+  // Khởi chạy App
   runApp(const MyApp());
 }
 
@@ -20,6 +60,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
@@ -34,6 +75,10 @@ class MyApp extends StatelessWidget {
               '/login': (context) => const LoginScreen(),
               '/register': (context) => const RegisterScreen(),
               '/main': (context) => const MainNavigationScreen(),
+              '/quiz': (context) => const QuizScreen(),
+              '/vocabulary': (context) => const VocabularyScreen(),
+              '/history': (context) => const HistoryScreen(),
+              '/live_camera': (context) => const LiveCameraScreen(),
             },
           );
         },
